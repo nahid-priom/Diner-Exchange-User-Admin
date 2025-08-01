@@ -1,162 +1,165 @@
 'use client';
 
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { mockOrders, orderStatuses } from '../../../services/mockData';
-import OrderCard from '../../../components/OrderCard';
-import UploadModal from '../../../components/UploadModal';
-import MainLayout from '../../MainLayout';
-import { FiPlus, FiFilter, FiSearch, FiTrash2 } from 'react-icons/fi';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 
-export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState('all');
-  const [showUploadModal, setShowUploadModal] = useState(false);
-  const [uploadType, setUploadType] = useState(null);
-  const [currentOrder, setCurrentOrder] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
+export default function DashboardPage() {
+  const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
 
-  const filteredOrders = (activeTab === 'all' ? mockOrders : mockOrders.filter(order => order.status === activeTab))
-    .filter(order => order.id.toLowerCase().includes(searchQuery.toLowerCase()) 
-      || order.amount.toString().includes(searchQuery) 
-      || order.currency.toLowerCase().includes(searchQuery.toLowerCase()));
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/user/api/verify-magic-link', {
+          method: 'GET',
+        });
 
-  const handleUploadClick = (order, type) => {
-    setCurrentOrder(order);
-    setUploadType(type);
-    setShowUploadModal(true);
-  };
-
-  const handleDeleteRequest = (orderId) => {
-    toast.promise(
-      new Promise((resolve) => {
-        setTimeout(() => {
-          // Simulate API call
-          console.log('Delete request sent for order:', orderId);
-          resolve();
-        }, 1000);
-      }),
-      {
-        loading: 'Sending deletion request...',
-        success: 'Request sent to admin for approval',
-        error: 'Failed to send request',
+        if (response.ok) {
+          const data = await response.json();
+          setUser(data.user);
+        } else {
+          // Not authenticated, redirect to login
+          router.push('/user/login');
+          return;
+        }
+      } catch (error) {
+        console.error('Auth check error:', error);
+        router.push('/user/login');
+        return;
+      } finally {
+        setIsLoading(false);
       }
-    );
+    };
+
+    checkAuth();
+  }, [router]);
+
+  const handleLogout = async () => {
+    try {
+      // Clear the auth cookie by setting it to expire
+      document.cookie = 'auth-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      
+      toast.success('Logged out successfully');
+      router.push('/user/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.error('Logout failed');
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin mx-auto h-8 w-8 text-indigo-600 mb-4">
+            <svg className="h-full w-full" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          </div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null; // Will redirect to login
+  }
 
   return (
-    <MainLayout>
-      <div className="space-y-6 pt-4">
-        {/* Header section */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">Order Management</h1>
-            <p className="text-gray-500">Track and manage your currency exchange orders</p>
-          </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-orange text-white rounded-lg hover:bg-orange-dark transition-colors">
-            <FiPlus className="w-4 h-4" />
-            <span>New Exchange</span>
-          </button>
-        </div>
-
-        {/* Search and filter section */}
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="relative flex-1">
-              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search by ID, amount, or currency..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange focus:border-transparent"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <FiFilter className="text-gray-500" />
-              <select 
-                className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange"
-                value={activeTab}
-                onChange={(e) => setActiveTab(e.target.value)}
-              >
-                <option value="all">All Orders</option>
-                {orderStatuses.map(status => (
-                  <option key={status} value={status}>{status}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Status overview cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          {['all', ...orderStatuses].map((status) => (
-            <motion.div 
-              key={status}
-              whileHover={{ y: -2 }}
-              className={`p-4 rounded-xl shadow-sm cursor-pointer transition-colors ${
-                activeTab === status ? 'ring-2 ring-orange bg-orange-50' : 'bg-white'
-              }`}
-              onClick={() => setActiveTab(status)}
-            >
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-gray-700">
-                  {status === 'all' ? 'All Orders' : status}
-                </span>
-                <span className="text-xl font-bold">
-                  {status === 'all' ? mockOrders.length : mockOrders.filter(o => o.status === status).length}
-                </span>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
+          {/* Header */}
+          <div className="bg-white shadow-xl rounded-lg p-6 mb-8">
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                  Welcome to your Dashboard
+                </h1>
+                <p className="text-gray-600">
+                  Logged in as: <span className="font-medium text-indigo-600">{user.email}</span>
+                </p>
               </div>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Orders list */}
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-          {filteredOrders.length > 0 ? (
-            <div className="space-y-4">
-              <AnimatePresence>
-                {filteredOrders.map(order => (
-                  <motion.div
-                    key={order.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <OrderCard 
-                      order={order} 
-                      onUploadClick={handleUploadClick} 
-                      onDeleteRequest={handleDeleteRequest}
-                    />
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+              <button
+                onClick={handleLogout}
+                className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              >
+                Logout
+              </button>
             </div>
-          ) : (
-            <div className="text-center py-12">
-              <p className="text-gray-500">No orders match your criteria</p>
-              {searchQuery && (
-                <button 
-                  onClick={() => setSearchQuery('')}
-                  className="text-orange mt-2 hover:underline"
-                >
-                  Clear search
-                </button>
-              )}
-            </div>
-          )}
-        </div>
+          </div>
 
-        <AnimatePresence>
-          {showUploadModal && (
-            <UploadModal
-              order={currentOrder}
-              type={uploadType}
-              onClose={() => setShowUploadModal(false)}
-            />
-          )}
-        </AnimatePresence>
+          {/* User Info Card */}
+          <div className="bg-white shadow-xl rounded-lg p-6 mb-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Account Information</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  User ID
+                </label>
+                <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">
+                  {user.id}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email Address
+                </label>
+                <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">
+                  {user.email}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Account Created
+                </label>
+                <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">
+                  {new Date(user.createdAt).toLocaleDateString()}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Last Updated
+                </label>
+                <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">
+                  {new Date(user.updatedAt).toLocaleDateString()}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Magic Link Info */}
+          <div className="bg-white shadow-xl rounded-lg p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Magic Link Authentication</h2>
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-green-600 mt-0.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-green-800">
+                    Successfully authenticated with magic link
+                  </h3>
+                  <div className="mt-2 text-sm text-green-700">
+                    <ul className="list-disc pl-5 space-y-1">
+                      <li>Your magic link is permanent and secure</li>
+                      <li>No passwords required</li>
+                      <li>Session will persist for 30 days</li>
+                      <li>You can regenerate your magic key anytime</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-    </MainLayout>
+    </div>
   );
 }
