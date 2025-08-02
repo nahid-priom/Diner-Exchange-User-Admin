@@ -1,20 +1,11 @@
 import { NextResponse } from 'next/server';
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import crypto from 'crypto';
 import connectDB from '../../../../lib/mongodb';
 import User from '../../../../models/User';
 
-// Helper function to create nodemailer transporter
-const createTransporter = () =>
-  nodemailer.createTransport({
-    host: process.env.EMAIL_HOST,
-    port: parseInt(process.env.EMAIL_PORT, 10),
-    secure: false,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
+// Initialize Resend
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request) {
   try {
@@ -77,10 +68,9 @@ export async function POST(request) {
       </div>
     `;
 
-    // Send the magic link email
-    const transporter = createTransporter();
-    await transporter.sendMail({
-      from: process.env.EMAIL_FROM,
+    // Send the magic link email using Resend
+    await resend.emails.send({
+      from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
       to: email,
       subject: 'Your Magic Login Link',
       html,
