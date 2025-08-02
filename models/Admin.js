@@ -7,6 +7,7 @@ const AdminSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
+      index: true,
       lowercase: true,
       trim: true,
       validate: {
@@ -72,8 +73,7 @@ const AdminSchema = new mongoose.Schema(
   }
 );
 
-// Indexes for performance
-AdminSchema.index({ email: 1 });
+// Indexes for performance (email already has unique: true, index: true)
 AdminSchema.index({ role: 1 });
 AdminSchema.index({ isActive: 1 });
 

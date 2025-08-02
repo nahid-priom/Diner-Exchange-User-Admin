@@ -6,7 +6,10 @@ const OrderSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      default: () => `DNR-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
+      index: true,
+      default: function() {
+        return `DNR-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+      },
     },
     customer: {
       type: mongoose.Schema.Types.ObjectId,
@@ -192,8 +195,7 @@ const OrderSchema = new mongoose.Schema(
   }
 );
 
-// Indexes for performance and queries
-OrderSchema.index({ orderId: 1 });
+// Indexes for performance and queries (orderId already has unique: true, index: true)
 OrderSchema.index({ customer: 1 });
 OrderSchema.index({ orderStatus: 1 });
 OrderSchema.index({ "paymentDetails.status": 1 });

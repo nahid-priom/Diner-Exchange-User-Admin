@@ -1,28 +1,5 @@
-import dbConnect from "@/lib/mongodb"; // <-- default import!
-import mongoose from "mongoose";
-
-// Schema definition
-const OrderSchema = new mongoose.Schema({
-  fullName: String,
-  email: String,
-  mobile: String,
-  country: String,
-  address: String,
-  city: String,
-  state: String,
-  postcode: String,
-  currency: String,
-  quantity: Number,
-  idFileUrl: String,
-  acceptTerms: Boolean,
-  paymentMethod: String,
-  paymentReceiptUrl: String,
-  skipReceipt: Boolean,
-  comments: String,
-  status: { type: String, default: "pending" },
-}, { collection: "orders", timestamps: true });
-
-const Order = mongoose.models.Order || mongoose.model("Order", OrderSchema);
+import dbConnect from "@/lib/mongodb";
+import UserOrder from "../../../../models/UserOrder";
 
 // GET /user/api/orders?email=...
 export async function GET(request) {
@@ -39,7 +16,7 @@ export async function GET(request) {
     // decodeURIComponent will convert "%40" back to "@"
     const decodedEmail = decodeURIComponent(email);
 
-    const orders = await Order.find({ email: decodedEmail }).sort({ createdAt: -1 });
+    const orders = await UserOrder.find({ email: decodedEmail }).sort({ createdAt: -1 });
 
     return new Response(JSON.stringify({ orders }), {
       status: 200,
@@ -62,7 +39,7 @@ export async function POST(request) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400 });
     }
 
-    const order = await Order.create({ ...body });
+    const order = await UserOrder.create({ ...body });
 
     return new Response(JSON.stringify({ message: "Order saved", order }), {
       status: 201,

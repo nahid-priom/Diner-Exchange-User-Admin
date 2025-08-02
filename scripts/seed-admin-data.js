@@ -3,6 +3,7 @@ import Admin from "../models/Admin.js";
 import Customer from "../models/Customer.js";
 import Order from "../models/Order.js";
 import User from "../models/User.js";
+import UserOrder from "../models/UserOrder.js";
 import Notification from "../models/Notification.js";
 
 async function seedAdminData() {
@@ -357,6 +358,50 @@ async function seedAdminData() {
       const notification = new Notification(notificationData);
       await notification.save();
       console.log(`Created notification: ${notification.title}`);
+    }
+
+    // Create sample user orders (front-end orders)
+    const userOrders = [
+      {
+        fullName: "Sarah Wilson",
+        email: "sarah.wilson@gmail.com",
+        mobile: "+64 21 456 7890",
+        country: "New Zealand",
+        address: "789 Karangahape Road",
+        city: "Auckland",
+        state: "Auckland",
+        postcode: "1010",
+        currency: "IQD",
+        quantity: 1000000,
+        idFileUrl: "https://example.com/id1.jpg",
+        acceptTerms: true,
+        paymentMethod: "bank_transfer",
+        status: "pending",
+        comments: "First time customer, please process quickly",
+      },
+      {
+        fullName: "David Chen",
+        email: "david.chen@yahoo.com",
+        mobile: "+64 21 567 8901",
+        country: "New Zealand",
+        address: "456 Dominion Road",
+        city: "Auckland",
+        state: "Auckland",
+        postcode: "1024",
+        currency: "ZWL",
+        quantity: 50000000,
+        idFileUrl: "https://example.com/id2.jpg",
+        acceptTerms: true,
+        paymentMethod: "online_payment",
+        paymentReceiptUrl: "https://example.com/receipt2.jpg",
+        status: "processing",
+      },
+    ];
+
+    for (const userOrderData of userOrders) {
+      const userOrder = new UserOrder(userOrderData);
+      await userOrder.save();
+      console.log(`Created user order: ${userOrder.fullName} - ${userOrder.currency}`);
     }
 
     console.log("\n✅ Admin data seeding completed successfully!");

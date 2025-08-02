@@ -2,12 +2,14 @@
   "name": "dinar-exchange-user-panel",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed-admin": "node scripts/seed-admin-data.js"
+    "seed-admin": "node scripts/seed-admin-data.js",
+    "test-models": "node tests/model-integration.test.js"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
