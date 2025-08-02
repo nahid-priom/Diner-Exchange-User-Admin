@@ -1,29 +1,20 @@
-import { NextResponse } from 'next/server';
-import nodemailer from 'nodemailer';
-import crypto from 'crypto';
-import connectDB from '../../../../lib/mongodb';
-import User from '../../../../models/User';
+import { NextResponse } from "next/server";
+import { Resend } from "resend";
+import crypto from "crypto";
+import connectDB from "../../../../lib/mongodb";
+import User from "../../../../models/User";
 
-// Helper function to create nodemailer transporter
-const createTransporter = () =>
-  nodemailer.createTransport({
-    host: process.env.EMAIL_HOST,
-    port: parseInt(process.env.EMAIL_PORT, 10),
-    secure: false,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
+// Initialize Resend
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request) {
   try {
     const { email } = await request.json();
 
     // Simple email validation
-    if (!email || !email.includes('@')) {
+    if (!email || !email.includes("@")) {
       return NextResponse.json(
-        { error: 'Valid email is required.' },
+        { error: "Valid email is required." },
         { status: 400 }
       );
     }
@@ -41,7 +32,7 @@ export async function POST(request) {
 
     // Generate or reuse a magic key
     if (!user.magicKey) {
-      user.magicKey = crypto.randomBytes(32).toString('hex');
+      user.magicKey = crypto.randomBytes(32).toString("hex");
     }
 
     // Save user
@@ -50,50 +41,58 @@ export async function POST(request) {
     // Build the magic link
     const magicLink = `${process.env.BASE_URL}/user/magic-login?key=${user.magicKey}`;
 
-    // Email content
     const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #4F46E5;">Your Magic Login Link</h2>
-        <p>Hello,</p>
-        <p>You requested a magic login link. Click the button below to securely log in to your account:</p>
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${magicLink}" 
-            style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
-            Login to Your Account
-          </a>
-        </div>
-        <p>Or copy and paste this link into your browser:</p>
-        <p style="background-color: #f3f4f6; padding: 10px; border-radius: 4px; word-break: break-all;">
-          ${magicLink}
-        </p>
-        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 14px;">
-          <p><strong>Important Security Notes:</strong></p>
-          <ul>
-            <li>This link is permanent and will work until you regenerate it</li>
-            <li>Keep this link secure and don't share it with anyone</li>
-            <li>If you didn't request this login link, please ignore this email</li>
-          </ul>
-        </div>
+  <div style="font-family: Arial, Helvetica, sans-serif; background: #f8fafc; max-width: 520px; margin: 0 auto; padding: 32px 24px; border-radius: 16px; border: 1px solid #e0e7ef;">
+    <div style="text-align: center; margin-bottom: 24px;">
+      <h1 style="font-size: 2rem; color: #2d3748; margin: 0;">Dinar Exchange</h1>
+    </div>
+    <div style="background: #fff; border-radius: 12px; padding: 24px 16px 16px 16px; box-shadow: 0 2px 8px #0001;">
+      <h2 style="color: #4F46E5; margin-bottom: 18px; font-size: 1.3rem;">Sign In to Your Account</h2>
+      <p style="color: #374151; font-size: 1rem; margin-bottom: 18px;">
+        Hello,
+        <br/>
+        To securely access your Dinar Exchange account, click the button below:
+      </p>
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${magicLink}"
+          style="background: linear-gradient(90deg, #6366f1, #4F46E5); color: #fff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 1rem; display: inline-block; letter-spacing: .02em;">
+          Log In Now
+        </a>
       </div>
-    `;
+      <p style="color: #6b7280; font-size: 0.98rem; margin: 0 0 20px 0;">Or copy and paste this link into your browser:</p>
+      <p style="background: #f3f4f6; color: #374151; padding: 10px; border-radius: 4px; word-break: break-all; font-size: 0.98rem;">
+        <a href="${magicLink}" style="color: #4F46E5;">${magicLink}</a>
+      </p>
+    </div>
+    <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 14px; text-align: center;">
+      <strong style="display:block; margin-bottom: 5px;">Security Tips:</strong>
+      <ul style="list-style: disc; margin: 0 0 10px 20px; text-align: left; color: #64748b;">
+        <li>This login link is unique to your account and should not be shared.</li>
+        <li>If you did not request this email, you can safely ignore and delete it.</li>
+      </ul>
+      <div style="margin-top: 8px; color: #94a3b8;">
+        &copy; ${new Date().getFullYear()} Dinar Exchange. All rights reserved.
+      </div>
+    </div>
+  </div>
+`;
 
-    // Send the magic link email
-    const transporter = createTransporter();
-    await transporter.sendMail({
+    // Send the magic link email using Resend
+    await resend.emails.send({
       from: process.env.EMAIL_FROM,
       to: email,
-      subject: 'Your Magic Login Link',
+      subject: "Your Magic Login Link",
       html,
     });
 
     return NextResponse.json(
-      { message: 'Magic link sent successfully', email: email.toLowerCase() },
+      { message: "Magic link sent successfully", email: email.toLowerCase() },
       { status: 200 }
     );
   } catch (error) {
-    console.error('Send magic link error:', error);
+    console.error("Send magic link error:", error);
     return NextResponse.json(
-      { error: 'Failed to send magic link. Please try again.' },
+      { error: "Failed to send magic link. Please try again." },
       { status: 500 }
     );
   }

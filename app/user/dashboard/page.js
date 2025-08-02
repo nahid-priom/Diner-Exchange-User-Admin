@@ -140,7 +140,7 @@ export default function OrderDashboard() {
 
   return (
     <MainLayout>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
+      <div className="min-h-screen py-8 px-4">
         <div className="max-w-6xl mx-auto space-y-8">
 
           {/* Dashboard Header */}
