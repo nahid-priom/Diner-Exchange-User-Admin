@@ -10,6 +10,7 @@ import review7 from "../../app/assets/review-image/review7.png";
 import review8 from "../../app/assets/review-image/review8.png";
 import review9 from "../../app/assets/review-image/review9.png";
 import { CheckBadgeIcon } from "@heroicons/react/24/outline";
+import Image from "next/image";
 
 // Icon components
 const StarIcon = ({ className }) => (
@@ -357,7 +358,7 @@ export function Testimonials3DCarousel() {
 
                   <div className="flex items-center gap-4 mt-auto pt-4 border-t border-gray-100">
                     <div className="relative">
-                      <img
+                      <Image
                         src={testimonial.image}
                         alt={testimonial.author}
                         className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-md"
