@@ -1,33 +1,28 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import connectDB from '../../../../lib/mongodb';
 import User from '../../../../models/User';
+
 
 export async function POST(request) {
   try {
     const { magicKey } = await request.json();
 
-    // Validate magic key
     if (!magicKey) {
-      return NextResponse.json(
-        { error: 'Magic key is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Magic key is required' }, { status: 400 });
     }
 
-    // Connect to MongoDB
     await connectDB();
 
-    // Find user by magic key
     const user = await User.findOne({ magicKey });
-
     if (!user) {
-      return NextResponse.json(
-        { error: 'Invalid or expired magic link' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Invalid or expired magic link' }, { status: 401 });
     }
 
-    // Return user info (excluding sensitive data)
+    // Invalidate magic key (one-time use)
+    user.magicKey = undefined;
+    await user.save();
+
     const userInfo = {
       id: user._id,
       email: user.email,
@@ -35,21 +30,17 @@ export async function POST(request) {
       updatedAt: user.updatedAt,
     };
 
-    // Create response with user data
     const response = NextResponse.json(
-      { 
-        message: 'Login successful',
-        user: userInfo
-      },
+      { message: 'Login successful', user: userInfo },
       { status: 200 }
     );
 
-    // Set a simple session cookie (you can make this more sophisticated)
+    // Set auth cookie (secure, httpOnly)
     response.cookies.set('auth-token', user._id.toString(), {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      maxAge: 30 * 24 * 60 * 60, // 30 days in seconds
       path: '/',
     });
 
@@ -57,7 +48,6 @@ export async function POST(request) {
 
   } catch (error) {
     console.error('Verify magic link error:', error);
-    
     return NextResponse.json(
       { error: 'Authentication failed. Please try again.' },
       { status: 500 }
@@ -65,32 +55,23 @@ export async function POST(request) {
   }
 }
 
-// Optional: Add GET method to check authentication status
+// GET: Check authentication status via auth cookie
 export async function GET(request) {
   try {
-    const authToken = request.cookies.get('auth-token')?.value;
+    const cookieStore = await cookies();
+    const authToken = cookieStore.get('auth-token')?.value;
 
     if (!authToken) {
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    // Connect to MongoDB
     await connectDB();
 
-    // Find user by ID
     const user = await User.findById(authToken).select('-magicKey');
-
     if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Return user info
     const userInfo = {
       id: user._id,
       email: user.email,
@@ -99,16 +80,12 @@ export async function GET(request) {
     };
 
     return NextResponse.json(
-      { 
-        authenticated: true,
-        user: userInfo
-      },
+      { authenticated: true, user: userInfo },
       { status: 200 }
     );
 
   } catch (error) {
     console.error('Authentication check error:', error);
-    
     return NextResponse.json(
       { error: 'Authentication check failed' },
       { status: 500 }
