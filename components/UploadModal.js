@@ -17,27 +17,45 @@ export default function UploadModal({ order, type, onClose }) {
       toast.error('Please select a file to upload');
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     try {
-     
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      toast.success(`${type === 'id' ? 'ID verification' : 'Payment receipt'} uploaded successfully!`, {
-        style: {
-          background: '#FF7B25',
-          color: '#fff',
-        },
-        iconTheme: {
-          primary: '#fff',
-          secondary: '#FF7B25',
-        },
+      // 1. Upload the file to blob storage
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const uploadRes = await fetch('/user/api/upload', {
+        method: 'POST',
+        body: formData,
       });
-      
-      onClose();
+
+      if (!uploadRes.ok) throw new Error('Upload failed');
+      const { url: uploadedUrl } = await uploadRes.json();
+
+      // 2. PATCH the order with the new file URL
+      const patchRes = await fetch(`/user/api/orders/${order._id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          [type === 'id' ? 'idFileUrl' : 'paymentReceiptUrl']: uploadedUrl,
+        }),
+      });
+
+      if (!patchRes.ok) throw new Error('Failed to update order');
+
+      toast.success(
+        `${type === 'id' ? 'ID verification' : 'Payment receipt'} uploaded successfully!`,
+        {
+          style: { background: '#FF7B25', color: '#fff' },
+          iconTheme: { primary: '#fff', secondary: '#FF7B25' },
+        }
+      );
+
+      onClose(true); // Let parent refresh orders
     } catch (error) {
       toast.error('Upload failed. Please try again.');
+      console.error(error);
     } finally {
       setIsLoading(false);
     }
@@ -87,15 +105,15 @@ export default function UploadModal({ order, type, onClose }) {
           className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
-         
+          {/* Modal Header */}
           <div className="flex justify-between items-center border-b border-gray-100 p-5">
             <div>
               <h3 className="text-lg font-semibold text-gray-900">
                 Upload {type === 'id' ? 'ID Verification' : 'Payment Receipt'}
               </h3>
-              <p className="text-sm text-gray-500 mt-1">Order #{order.id}</p>
+              <p className="text-sm text-gray-500 mt-1">Order #{order._id || order.id}</p>
             </div>
-            <button 
+            <button
               onClick={handleCancel}
               className="text-gray-400 hover:text-gray-500 transition-colors"
               disabled={isLoading}
@@ -103,15 +121,15 @@ export default function UploadModal({ order, type, onClose }) {
               <XMarkIcon className="h-6 w-6" />
             </button>
           </div>
-          
-        
+
+          {/* Upload Form */}
           <form onSubmit={handleSubmit} className="p-5">
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 {type === 'id' ? 'ID Document' : 'Payment Proof'}
               </label>
-              
-              <div 
+
+              <div
                 className={`border-2 border-dashed rounded-lg p-6 text-center transition-all ${isDragging ? 'border-orange bg-orange-50' : 'border-gray-300 hover:border-gray-400'}`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
@@ -168,8 +186,8 @@ export default function UploadModal({ order, type, onClose }) {
                 )}
               </div>
             </div>
-            
-           
+
+            {/* Actions */}
             <div className="flex justify-end space-x-3">
               <button
                 type="button"

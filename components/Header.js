@@ -19,6 +19,7 @@ import {
 } from "@heroicons/react/24/outline";
 import logo from "../app/assets/logo.png";
 
+// Contact/Navigation Data
 const CONTACT_INFO = [
   {
     text: "dinars@dinarexchange.co.nz",
@@ -45,54 +46,7 @@ const NAV_LINKS = [
   { name: "Contact Us", href: "/contact", icon: <PhoneIcon className="w-5 h-5" /> },
 ];
 
-// Offer Timer
-const CountdownTimer = () => {
-  const [timeLeft, setTimeLeft] = useState({ hours: 2, minutes: 30, seconds: 0 });
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        const { hours, minutes, seconds } = prev;
-        if (seconds > 0) return { ...prev, seconds: seconds - 1 };
-        if (minutes > 0) return { hours, minutes: minutes - 1, seconds: 59 };
-        if (hours > 0) return { hours: hours - 1, minutes: 59, seconds: 59 };
-        clearInterval(timer);
-        return { hours: 0, minutes: 0, seconds: 0 };
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-  return (
-    <span className="font-mono text-xs">
-      {String(timeLeft.hours).padStart(2, "0")}:
-      {String(timeLeft.minutes).padStart(2, "0")}:
-      {String(timeLeft.seconds).padStart(2, "0")}
-    </span>
-  );
-};
-
-function LimitedTimeOffer() {
-  return (
-    <div className="relative group">
-      <div className="flex items-center space-x-3 bg-gradient-to-r from-orange-700 to-orange-700 px-4 py-2 shadow-lg hover:shadow-orange-500/20 transition-all">
-        <div className="flex gap-4 justify-center items-center">
-          <span className="font-bold text-xs uppercase tracking-wider">
-            🎁 LIMITED TIME: Free 20 Billion ZIM with 1 Million IQD orders!
-          </span>
-          <div className="flex items-center space-x-1">
-            <span className="text-xs hidden lg:block font-medium">Ends in:</span>
-            <span className="font-mono text-blue-900 text-sm font-bold bg-orange-100 px-2 py-0.5 rounded">
-              <CountdownTimer />
-            </span>
-          </div>
-        </div>
-      </div>
-      <div className="absolute hidden group-hover:block bg-white text-blue-900 p-2 rounded-md shadow-lg mt-1 text-xs whitespace-nowrap z-10">
-        Limited time offer! Don&apos;t miss this special discount!
-      </div>
-    </div>
-  );
-}
-
+// NavLink
 function NavLink({ href, name, icon }) {
   return (
     <Link
@@ -105,31 +59,9 @@ function NavLink({ href, name, icon }) {
   );
 }
 
-function MobileMenuButton({ isOpen, onClick }) {
-  return (
-    <button
-      className="lg:hidden p-2 text-gray-700 hover:text-orange-500 focus:outline-none flex items-center gap-2"
-      onClick={onClick}
-      aria-label="Toggle menu"
-    >
-      {isOpen ? (
-        <>
-          <XMarkIcon className="h-6 w-6 text-sm text-shadow-gray-800 font-bold" />
-          <span className="text-sm text-shadow-gray-800 font-bold">CLOSE</span>
-        </>
-      ) : (
-        <>
-          <Bars3Icon className="h-6 w-6 text-sm text-shadow-gray-800 font-bold" />
-          <span className="text-sm text-shadow-gray-800 font-bold">MENU</span>
-        </>
-      )}
-    </button>
-  );
-}
-
-// ============ Profile Dropdown ==============
+// Profile Dropdown
 const ProfileDropdown = forwardRef(
-  ({ isOpen, onToggle, user, menuItems, onLogin, onSignup, onLogout }, ref) => (
+  ({ isOpen, onToggle, user, menuItems, onLogin, onLogout }, ref) => (
     <div className="relative" ref={ref}>
       <button
         onClick={onToggle}
@@ -149,20 +81,14 @@ const ProfileDropdown = forwardRef(
               <div className="flex flex-col px-4 py-2">
                 <button
                   onClick={onLogin}
-                  className="mb-2 py-2 px-3 rounded bg-orange-500 text-white hover:bg-orange-600 transition"
+                  className="py-2 px-3 rounded bg-orange-500 text-white hover:bg-orange-600 transition"
                 >
                   Log In
-                </button>
-                <button
-                  onClick={onSignup}
-                  className="py-2 px-3 rounded border border-orange-500 text-orange-500 hover:bg-orange-50 transition"
-                >
-                  Sign Up
                 </button>
               </div>
             ) : (
               <>
-                {menuItems.map((item, idx) => (
+                {menuItems.map((item) => (
                   <button
                     key={item.label}
                     onClick={item.action}
@@ -189,8 +115,31 @@ const ProfileDropdown = forwardRef(
 );
 ProfileDropdown.displayName = "ProfileDropdown";
 
-// ============ Mobile Menu =============
-function MobileMenu({ isOpen, navLinks, user, profileMenuItems, onClose, onLogin, onSignup, onLogout }) {
+// Mobile Menu Button
+function MobileMenuButton({ isOpen, onClick }) {
+  return (
+    <button
+      className="lg:hidden p-2 text-gray-700 hover:text-orange-500 focus:outline-none flex items-center gap-2"
+      onClick={onClick}
+      aria-label="Toggle menu"
+    >
+      {isOpen ? (
+        <>
+          <XMarkIcon className="h-6 w-6 text-sm text-shadow-gray-800 font-bold" />
+          <span className="text-sm text-shadow-gray-800 font-bold">CLOSE</span>
+        </>
+      ) : (
+        <>
+          <Bars3Icon className="h-6 w-6 text-sm text-shadow-gray-800 font-bold" />
+          <span className="text-sm text-shadow-gray-800 font-bold">MENU</span>
+        </>
+      )}
+    </button>
+  );
+}
+
+// Mobile Menu
+function MobileMenu({ isOpen, navLinks, user, profileMenuItems, onClose, onLogin, onLogout }) {
   return !isOpen ? null : (
     <div className="lg:hidden bg-white border-t border-gray-200 z-40">
       <nav className="px-2 py-3 space-y-1">
@@ -219,18 +168,9 @@ function MobileMenu({ isOpen, navLinks, user, profileMenuItems, onClose, onLogin
                   onLogin();
                   onClose();
                 }}
-                className="mb-2 py-2 px-3 rounded bg-orange-500 text-white hover:bg-orange-600 transition"
+                className="py-2 px-3 rounded bg-orange-500 text-white hover:bg-orange-600 transition"
               >
                 Log In
-              </button>
-              <button
-                onClick={() => {
-                  onSignup();
-                  onClose();
-                }}
-                className="py-2 px-3 rounded border border-orange-500 text-orange-500 hover:bg-orange-50 transition"
-              >
-                Sign Up
               </button>
             </div>
           ) : (
@@ -266,26 +206,32 @@ function MobileMenu({ isOpen, navLinks, user, profileMenuItems, onClose, onLogin
   );
 }
 
-// ============ Header =============
+// Main Header
 export default function Header() {
   const router = useRouter();
   const pathname = usePathname();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [user, setUser] = useState(null);
   const profileRef = useRef(null);
 
-  // Persistent user state (localStorage for demo; use Context in production)
-  const [user, setUser] = useState(null);
-
-  // On mount, check if user exists in localStorage
+  // Check login with magic link
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("user");
-      if (stored) {
-        setUser(JSON.parse(stored));
+    async function checkAuth() {
+      try {
+        const res = await fetch("/user/api/verify-magic-link", { method: "GET" });
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data.user);
+        } else {
+          setUser(null);
+        }
+      } catch {
+        setUser(null);
       }
     }
+    checkAuth();
   }, []);
 
   useEffect(() => {
@@ -310,7 +256,6 @@ export default function Header() {
       label: "Orders",
       action: () => router.push("/user/dashboard"),
     },
-    
     {
       icon: <EnvelopeIcon className="w-5 h-5" />,
       label: "Messages",
@@ -319,12 +264,9 @@ export default function Header() {
   ];
 
   const handleLogin = () => router.push("/user/login");
-  const handleSignup = () => router.push("/user/register");
   const handleLogout = () => {
     setUser(null);
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("user");
-    }
+    document.cookie = 'auth-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
     setIsProfileOpen(false);
     router.push("/");
   };
@@ -335,34 +277,28 @@ export default function Header() {
       <div className="bg-orange-700 text-white text-sm">
         <div className="container max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center space-x-6">
-            {/* Show Offer on /buyzimdoller, otherwise Contact Info */}
-            {pathname === "/buyzimdoller" ? (
-              <LimitedTimeOffer />
-            ) : (
-              <div className="flex items-center space-x-4">
-                {CONTACT_INFO.map((info, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex items-center lg:ml-0 py-3 ml-6 justify-between space-x-1 ${
-                      !info.showOnMobile ? "hidden sm:flex" : ""
-                    }`}
-                  >
-                    {info.icon}
-                    {info.text.includes("@") ? (
-                      <a href={`mailto:${info.text}`} className="text-xs sm:text-sm hover:underline">
-                        {info.text}
-                      </a>
-                    ) : (
-                      <a href={`tel:${info.text.replace(/\s/g, "")}`} className="text-xs sm:text-sm hover:underline">
-                        {info.text}
-                      </a>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="flex items-center space-x-4">
+              {CONTACT_INFO.map((info, idx) => (
+                <div
+                  key={idx}
+                  className={`flex items-center lg:ml-0 py-3 ml-6 justify-between space-x-1 ${
+                    !info.showOnMobile ? "hidden sm:flex" : ""
+                  }`}
+                >
+                  {info.icon}
+                  {info.text.includes("@") ? (
+                    <a href={`mailto:${info.text}`} className="text-xs sm:text-sm hover:underline">
+                      {info.text}
+                    </a>
+                  ) : (
+                    <a href={`tel:${info.text.replace(/\s/g, "")}`} className="text-xs sm:text-sm hover:underline">
+                      {info.text}
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
-          {/* Order Now Button */}
           <button className="hidden lg:flex items-center gap-2 text-white px-3 lg:px-4 py-1.5 lg:py-2 rounded-md hover:opacity-90 transition-opacity shadow-md hover:shadow-orange-700/30">
             <ShoppingCartIcon className="w-4 h-4" />
             <span className="text-sm font-medium">Order Now</span>
@@ -372,7 +308,7 @@ export default function Header() {
       {/* Main Navigation */}
       <div className={`bg-white shadow-sm transition-all duration-300 ${isScrolled ? "shadow-md" : ""}`}>
         <div className="container w-full max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-          {/* Logo & Flag */}
+          {/* Logo */}
           <Link href="/" className="flex items-center gap-2 rounded focus:outline-none focus:ring-2 focus:ring-orange-500" aria-label="Go to homepage">
             <Image src={logo} alt="Company Logo" width={200} height={60} priority />
             <div className="flex items-center gap-1">
@@ -386,18 +322,15 @@ export default function Header() {
               />
             </div>
           </Link>
-          {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center space-x-6">
             {NAV_LINKS.map((link) => (
               <NavLink key={link.name} {...link} />
             ))}
           </nav>
-          {/* Mobile Menu Button */}
           <MobileMenuButton
             isOpen={isMobileMenuOpen}
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           />
-          {/* Profile Dropdown */}
           <div className="hidden lg:block">
             <ProfileDropdown
               ref={profileRef}
@@ -406,12 +339,10 @@ export default function Header() {
               user={user}
               menuItems={profileMenuItems}
               onLogin={handleLogin}
-              onSignup={handleSignup}
               onLogout={handleLogout}
             />
           </div>
         </div>
-        {/* Mobile Menu */}
         <MobileMenu
           isOpen={isMobileMenuOpen}
           navLinks={NAV_LINKS}
@@ -419,7 +350,6 @@ export default function Header() {
           profileMenuItems={profileMenuItems}
           onClose={() => setIsMobileMenuOpen(false)}
           onLogin={handleLogin}
-          onSignup={handleSignup}
           onLogout={handleLogout}
         />
       </div>
