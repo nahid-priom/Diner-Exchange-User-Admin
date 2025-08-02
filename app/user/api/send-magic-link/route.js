@@ -3,6 +3,13 @@ import nodemailer from 'nodemailer';
 import crypto from 'crypto';
 import connectDB from '../../../../lib/mongodb';
 import User from '../../../../models/User';
+import { 
+  extractIPAddress, 
+  checkTrustedIP, 
+  addTrustedIP, 
+  checkRateLimit, 
+  recordLoginAttempt 
+} from '../../../../lib/ipUtils';
 
 // Configure nodemailer transporter
 const createTransporter = () => {
@@ -29,6 +36,10 @@ export async function POST(request) {
       );
     }
 
+    // Extract user's IP address for auto-login check
+    const userIP = extractIPAddress(request);
+    const userAgent = request.headers.get('user-agent');
+
     // Connect to MongoDB
     await connectDB();
 
@@ -42,10 +53,77 @@ export async function POST(request) {
       });
     }
 
+    // Security: Check rate limiting first
+    const rateLimitCheck = checkRateLimit(user);
+    if (!rateLimitCheck.allowed) {
+      // Record failed attempt
+      recordLoginAttempt(user, false);
+      await user.save();
+
+      const lockMessage = rateLimitCheck.reason === 'account_locked' 
+        ? `Account temporarily locked. Try again after ${rateLimitCheck.resetTime.toLocaleTimeString()}`
+        : 'Too many login attempts. Please try again in a few minutes.';
+
+      return NextResponse.json(
+        { error: lockMessage },
+        { status: 429 }
+      );
+    }
+
+    // IP-based auto-login check
+    if (user.autoLoginEnabled !== false && user.trustedIPs && user.trustedIPs.length > 0) {
+      const ipCheck = checkTrustedIP(userIP, user.trustedIPs);
+      
+      if (ipCheck.isMatch) {
+        // Auto-login: IP matches trusted IP
+        console.log(`Auto-login for ${email} from trusted IP ${userIP} (${ipCheck.matchType} match)`);
+        
+        // Update IP usage and record successful login
+        addTrustedIP(user, userIP, userAgent);
+        recordLoginAttempt(user, true);
+        await user.save();
+
+        // Create session cookie and return success
+        const userInfo = {
+          id: user._id,
+          email: user.email,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        };
+
+        const response = NextResponse.json(
+          { 
+            message: 'Auto-login successful',
+            user: userInfo,
+            autoLogin: true,
+            ipMatch: ipCheck.matchType
+          },
+          { status: 200 }
+        );
+
+        // Set authentication cookie
+        response.cookies.set('auth-token', user._id.toString(), {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+          path: '/',
+        });
+
+        return response;
+      }
+    }
+
+    // No IP match - proceed with normal magic link flow
+    console.log(`Magic link required for ${email} from IP ${userIP} (no trusted IP match)`);
+
     // Generate magic key if doesn't exist
     if (!user.magicKey) {
       user.magicKey = crypto.randomBytes(32).toString('hex');
     }
+
+    // Record this as a login attempt (not failed, just requiring magic link)
+    user.lastLoginAttempt = new Date();
 
     // Save user
     await user.save();
@@ -98,7 +176,10 @@ export async function POST(request) {
     return NextResponse.json(
       { 
         message: 'Magic link sent successfully',
-        email: email.toLowerCase()
+        email: email.toLowerCase(),
+        autoLogin: false,
+        userIP: userIP, // Optional: return for debugging (remove in production)
+        requiresMagicLink: true
       },
       { status: 200 }
     );

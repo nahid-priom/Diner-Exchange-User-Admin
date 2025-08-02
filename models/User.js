@@ -19,7 +19,43 @@ const UserSchema = new mongoose.Schema({
     unique: true,
     sparse: true, // Allow multiple null values but ensure uniqueness for non-null values
     index: true
-  }
+  },
+  // IP-based auto-login enhancement fields
+  trustedIPs: [{
+    ip: {
+      type: String,
+      required: true
+    },
+    firstSeen: {
+      type: Date,
+      default: Date.now
+    },
+    lastUsed: {
+      type: Date,
+      default: Date.now
+    },
+    userAgent: String, // Optional: store user agent for additional security context
+    location: String   // Optional: store general location for user reference
+  }],
+  lastLoginIP: {
+    type: String,
+    index: true // Index for faster IP lookups
+  },
+  autoLoginEnabled: {
+    type: Boolean,
+    default: true // Users can disable IP-based auto-login for security
+  },
+  // Security tracking
+  loginAttempts: {
+    type: Number,
+    default: 0
+  },
+  lastLoginAttempt: Date,
+  accountLocked: {
+    type: Boolean,
+    default: false
+  },
+  lockUntil: Date
 }, {
   timestamps: true // Automatically add createdAt and updatedAt fields
 });

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import connectDB from '../../../../lib/mongodb';
 import User from '../../../../models/User';
+import { extractIPAddress, addTrustedIP, recordLoginAttempt } from '../../../../lib/ipUtils';
 
 export async function POST(request) {
   try {
@@ -14,11 +15,15 @@ export async function POST(request) {
       );
     }
 
+    // Extract IP address and user agent for tracking
+    const userIP = extractIPAddress(request);
+    const userAgent = request.headers.get('user-agent');
+
     // Connect to MongoDB
     await connectDB();
 
     // Find user by magic key
-    const user = await User.findOne({ magicKey });
+    let user = await User.findOne({ magicKey });
 
     if (!user) {
       return NextResponse.json(
@@ -26,6 +31,16 @@ export async function POST(request) {
         { status: 401 }
       );
     }
+
+    // IP-based enhancement: Add current IP to trusted IPs on successful magic link login
+    console.log(`Magic link login successful for ${user.email} from IP ${userIP}`);
+    
+    // Add/update trusted IP and record successful login
+    addTrustedIP(user, userIP, userAgent);
+    recordLoginAttempt(user, true);
+    
+    // Save updated user data
+    await user.save();
 
     // Return user info (excluding sensitive data)
     const userInfo = {
@@ -39,7 +54,9 @@ export async function POST(request) {
     const response = NextResponse.json(
       { 
         message: 'Login successful',
-        user: userInfo
+        user: userInfo,
+        newTrustedIP: userIP, // Inform frontend that this IP is now trusted
+        autoLoginEnabled: user.autoLoginEnabled !== false
       },
       { status: 200 }
     );
