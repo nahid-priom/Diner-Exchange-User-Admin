@@ -8,7 +8,7 @@ export default function MagicLoginPage() {
   const [isVerifying, setIsVerifying] = useState(true);
   const [error, setError] = useState(null);
   const [user, setUser] = useState(null);
-
+  
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -36,9 +36,10 @@ export default function MagicLoginPage() {
         if (response.ok) {
           setUser(data.user);
           toast.success('Login successful! Welcome back.');
-
+          
+          // Redirect to dashboard or home page after a short delay
           setTimeout(() => {
-            router.push('/user/dashboard');
+            router.push('/user/dashboard'); // Change this to your desired redirect path
           }, 2000);
         } else {
           setError(data.error || 'Authentication failed');
@@ -54,7 +55,6 @@ export default function MagicLoginPage() {
     };
 
     verifyMagicLink();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, router]);
 
   const handleRetryLogin = () => {
